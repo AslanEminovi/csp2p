@@ -1,4 +1,4 @@
-# CS2 Marketplace
+# CS2 Marketplace (CS2P2P)
 
 A peer-to-peer marketplace for CS2 (Counter-Strike 2) items with Steam integration, featuring a fully localized interface for Georgian users with GEL currency support alongside USD.
 
@@ -37,10 +37,10 @@ A peer-to-peer marketplace for CS2 (Counter-Strike 2) items with Steam integrati
    - **Environment Variables**: Set up the following variables:
      ```
      PORT=10000
-     MONGO_URI=your_mongodb_connection_string
-     SESSION_SECRET=your_session_secret
-     STEAMWEBAPI_KEY=your_steam_web_api_key
-     STEAM_API_KEY=your_steam_api_key
+     MONGO_URI=mongodb+srv://eminoviaslan:asqo-140@csgeorgia.2hjvj.mongodb.net/cs2marketplace?retryWrites=true&w=majority&appName=CSGEorgia
+     SESSION_SECRET=cs2marketplaceSecretKey789456123
+     STEAMWEBAPI_KEY=FSWJNSWYW8QSAQ6W
+     STEAM_API_KEY=F754A63D38C9F63C247615D6F88D868C
      CALLBACK_URL=https://cs2-marketplace-api.onrender.com/auth/steam/return
      API_URL=https://cs2-marketplace-api.onrender.com
      CLIENT_URL=https://cs2-marketplace.onrender.com
@@ -88,8 +88,8 @@ A peer-to-peer marketplace for CS2 (Counter-Strike 2) items with Steam integrati
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/cs2-marketplace.git
-   cd cs2-marketplace
+   git clone https://github.com/AslanEminovi/csp2p.git
+   cd csp2p
    ```
 
 2. Install server dependencies:
