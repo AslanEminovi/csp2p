@@ -29,9 +29,12 @@ router.get(
   }),
   (req, res) => {
     // Successful authentication
-    const clientUrl = process.env.CLIENT_URL || "https://csp2p-1.onrender.com";
-    const returnTo = req.session.returnTo || clientUrl;
-    console.log("Redirecting after auth to:", returnTo);
+    const clientUrl = process.env.NODE_ENV === "production" 
+      ? (process.env.CLIENT_URL || "https://csp2p-1.onrender.com")
+      : "http://localhost:3000";
+      
+    console.log("Environment:", process.env.NODE_ENV || "development");
+    console.log("Client URL:", clientUrl);
 
     // Clear the stored URL
     delete req.session.returnTo;

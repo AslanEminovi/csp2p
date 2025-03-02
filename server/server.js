@@ -37,7 +37,7 @@ const app = express();
 // Enable CORS for your React client
 app.use(
   cors({
-    origin: ["https://csp2p-1.onrender.com"],
+    origin: ["https://csp2p-1.onrender.com", "http://localhost:3000"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Accept"],
@@ -71,6 +71,7 @@ app.use(passport.session());
 
 // API Routes - Move these BEFORE the React routing handler
 app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes); // Add duplicate routes to catch both formats
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
 app.use("/api/offers", offerRoutes);
@@ -182,7 +183,7 @@ const server = http.createServer(app);
 // Initialize Socket.io with proper CORS for deployment
 const io = new Server(server, {
   cors: {
-    origin: ["https://csp2p-1.onrender.com", "https://csp2p.onrender.com"],
+    origin: ["https://csp2p-1.onrender.com", "https://csp2p.onrender.com", "http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true,
   },
