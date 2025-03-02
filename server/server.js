@@ -84,7 +84,7 @@ app.use("/api/user", userRoutes);
 if (process.env.NODE_ENV === "production") {
   // Serve static files from the React app
   app.use(express.static(path.join(__dirname, "../client/build")));
-  
+
   // Handle non-API routes by serving the React app
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api/")) {
@@ -226,4 +226,7 @@ app.set("io", io);
 
 // Start the server
 server.listen(PORT, () => {
-  console.log(`
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log("WebSocket server initialized");
+});
