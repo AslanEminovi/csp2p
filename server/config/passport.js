@@ -19,9 +19,13 @@ passport.use(
   new SteamStrategy(
     {
       returnURL:
-        process.env.CALLBACK_URL ||
-        "https://csp2p-api.onrender.com/auth/steam/return",
-      realm: process.env.API_URL || "https://csp2p-api.onrender.com",
+        process.env.NODE_ENV === "production"
+          ? "https://csp2p-api.onrender.com/api/auth/steam/return"
+          : "http://localhost:5001/api/auth/steam/return",
+      realm:
+        process.env.NODE_ENV === "production"
+          ? "https://csp2p-api.onrender.com"
+          : "http://localhost:5001",
       apiKey: process.env.STEAM_API_KEY,
     },
     async (identifier, profile, done) => {

@@ -1,8 +1,8 @@
 const express = require("express");
 const passport = require("passport");
 const router = express.Router();
-const steamApiService = require('../services/steamApiService');
-const User = require('../models/User');
+const steamApiService = require("../services/steamApiService");
+const User = require("../models/User");
 
 // @route GET /auth/steam
 router.get("/steam", (req, res, next) => {
@@ -11,25 +11,37 @@ router.get("/steam", (req, res, next) => {
   if (req.headers.referer) {
     req.session.returnTo = req.headers.referer;
   }
-  passport.authenticate("steam")(req, res, next);
+  // Encode the return URL in base64
+  const returnTo = Buffer.from(
+    req.session.returnTo ||
+      process.env.CLIENT_URL ||
+      "https://csp2p-1.onrender.com"
+  ).toString("base64");
+  req.session.encodedReturnTo = returnTo;
+  passport.authenticate("steam", {
+    returnTo: returnTo,
+  })(req, res, next);
 });
 
 // @route GET /auth/steam/return
 router.get(
   "/steam/return",
   passport.authenticate("steam", {
-    failureRedirect: process.env.CLIENT_URL || "https://cs2-marketplace.onrender.com",
+    failureRedirect: process.env.CLIENT_URL || "https://csp2p-1.onrender.com",
   }),
   (req, res) => {
     // Successful authentication
-    // Get stored return URL from session or use default client URL
-    const clientUrl = process.env.CLIENT_URL || "https://cs2-marketplace.onrender.com";
-    const returnTo = req.session.returnTo || clientUrl;
+    // Decode the return URL from base64
+    const returnTo = req.session.encodedReturnTo
+      ? Buffer.from(req.session.encodedReturnTo, "base64").toString()
+      : process.env.CLIENT_URL || "https://csp2p-1.onrender.com";
+
     console.log("Redirecting after auth to:", returnTo);
-    
-    // Clear the stored URL
+
+    // Clear the stored URLs
     delete req.session.returnTo;
-    
+    delete req.session.encodedReturnTo;
+
     // Redirect back to the client
     res.redirect(returnTo);
   }
@@ -40,9 +52,11 @@ router.get("/user", async (req, res) => {
   if (req.user) {
     try {
       // Automatically refresh the user's profile if it hasn't been updated in the last hour
-      const lastUpdateTime = req.user.lastProfileUpdate ? new Date(req.user.lastProfileUpdate) : null;
+      const lastUpdateTime = req.user.lastProfileUpdate
+        ? new Date(req.user.lastProfileUpdate)
+        : null;
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      
+
       if (!lastUpdateTime || lastUpdateTime < oneHourAgo) {
         // Try to refresh profile data from Steam
         try {
@@ -54,7 +68,7 @@ router.get("/user", async (req, res) => {
           // Continue with existing data if refresh fails
         }
       }
-      
+
       res.json({
         authenticated: true,
         user: {
@@ -66,7 +80,7 @@ router.get("/user", async (req, res) => {
           tradeUrlExpiry: req.user.tradeUrlExpiry,
           walletBalance: req.user.walletBalance,
           walletBalanceGEL: req.user.walletBalanceGEL,
-          lastProfileUpdate: req.user.lastProfileUpdate
+          lastProfileUpdate: req.user.lastProfileUpdate,
         },
       });
     } catch (error) {
@@ -84,10 +98,12 @@ router.get("/refresh-profile", async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: "User not authenticated" });
   }
-  
+
   try {
-    const refreshedUser = await steamApiService.refreshUserProfile(req.user._id);
-    
+    const refreshedUser = await steamApiService.refreshUserProfile(
+      req.user._id
+    );
+
     res.json({
       success: true,
       user: {
@@ -95,14 +111,14 @@ router.get("/refresh-profile", async (req, res) => {
         steamId: refreshedUser.steamId,
         displayName: refreshedUser.displayName,
         avatar: refreshedUser.avatar,
-        lastProfileUpdate: refreshedUser.lastProfileUpdate
-      }
+        lastProfileUpdate: refreshedUser.lastProfileUpdate,
+      },
     });
   } catch (error) {
     console.error("Manual profile refresh error:", error);
-    res.status(500).json({ 
-      error: "Failed to refresh profile", 
-      message: error.message 
+    res.status(500).json({
+      error: "Failed to refresh profile",
+      message: error.message,
     });
   }
 });
