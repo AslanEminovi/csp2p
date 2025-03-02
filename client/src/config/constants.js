@@ -2,8 +2,8 @@
  * Application constants
  */
 
-export const API_URL =
-  process.env.REACT_APP_API_URL || "https://csp2p.onrender.com/api";
+// Hard-coded API URL to avoid any environment issues
+export const API_URL = "https://csp2p.onrender.com/api";
 
 // Platform fee (as a percentage)
 export const PLATFORM_FEE = 2.5;

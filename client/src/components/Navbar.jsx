@@ -131,11 +131,15 @@ function Navbar({ user, onLogout }) {
               }}
             >
               <img 
-                src={user.avatar} 
-                alt={user.displayName}
+                src={user.avatar || 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'} 
+                alt={user.displayName || 'Steam User'}
                 style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid #4ade80' }}
+                onError={(e) => {
+                  console.log('Avatar load error, using fallback');
+                  e.target.src = 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg';
+                }}
               />
-              <span style={{ color: '#e2e8f0' }}>{user.displayName}</span>
+              <span style={{ color: '#e2e8f0' }}>{user.displayName || 'Steam User'}</span>
             </div>
             {dropdownOpen && (
               <div style={{

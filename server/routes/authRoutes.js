@@ -146,26 +146,34 @@ router.get("/steam/return", async (req, res) => {
 
 // @route GET /auth/user
 router.get("/user", async (req, res) => {
+  console.log("Auth user request received, session ID:", req.sessionID);
+  console.log("Is authenticated:", !!req.user);
+  
   if (req.user) {
     try {
-      // Automatically refresh the user's profile if it hasn't been updated in the last hour
-      const lastUpdateTime = req.user.lastProfileUpdate
-        ? new Date(req.user.lastProfileUpdate)
-        : null;
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-
-      if (!lastUpdateTime || lastUpdateTime < oneHourAgo) {
-        // Try to refresh profile data from Steam
-        try {
-          await steamApiService.refreshUserProfile(req.user._id);
-          // Reload user from database to get fresh data
-          req.user = await User.findById(req.user._id);
-        } catch (refreshError) {
-          console.error("Profile auto-refresh failed:", refreshError);
-          // Continue with existing data if refresh fails
-        }
+      console.log("User found in session:", req.user.steamId, req.user.displayName);
+      
+      // Always refresh profile data from Steam to ensure it's current
+      try {
+        console.log("Refreshing user profile...");
+        const refreshedUser = await steamApiService.refreshUserProfile(req.user._id);
+        console.log("Profile refreshed successfully");
+        
+        // Reload user from database to get fresh data
+        req.user = await User.findById(req.user._id);
+        
+        console.log("Updated user data:", {
+          id: req.user._id,
+          steamId: req.user.steamId,
+          displayName: req.user.displayName,
+          avatar: req.user.avatar
+        });
+      } catch (refreshError) {
+        console.error("Profile refresh failed:", refreshError);
+        // Continue with existing data if refresh fails
       }
 
+      // Return user data
       res.json({
         authenticated: true,
         user: {
@@ -175,16 +183,18 @@ router.get("/user", async (req, res) => {
           avatar: req.user.avatar,
           tradeUrl: req.user.tradeUrl,
           tradeUrlExpiry: req.user.tradeUrlExpiry,
-          walletBalance: req.user.walletBalance,
-          walletBalanceGEL: req.user.walletBalanceGEL,
+          walletBalance: req.user.walletBalance || 0,
+          walletBalanceGEL: req.user.walletBalanceGEL || 0,
           lastProfileUpdate: req.user.lastProfileUpdate,
+          profileUrl: req.user.profileUrl
         },
       });
     } catch (error) {
       console.error("Error fetching user data:", error);
-      res.status(500).json({ error: "Failed to fetch user data" });
+      res.status(500).json({ error: "Failed to fetch user data", message: error.message });
     }
   } else {
+    console.log("No user in session, returning not authenticated");
     res.json({ authenticated: false });
   }
 });

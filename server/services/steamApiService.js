@@ -4,19 +4,31 @@ const Item = require("../models/Item");
 const Trade = require("../models/Trade");
 
 // Base URL for Steam Web API
-const STEAM_API_BASE_URL =
-  process.env.STEAM_API_BASE_URL || "https://www.steamwebapi.com/steam/api";
+const STEAM_API_BASE_URL = "https://api.steampowered.com";
+const STEAM_WEBAPI_BASE_URL = "https://www.steamwebapi.com/steam/api";
 
 // Helper function to check API key
 const checkApiKey = () => {
-  const STEAM_API_KEY = process.env.STEAMWEBAPI_KEY;
+  const STEAM_API_KEY = process.env.STEAM_API_KEY || "F754A63D38C9F63C247615D6F88D868C";
   if (!STEAM_API_KEY) {
     console.warn(
-      "STEAMWEBAPI_KEY not provided - Steam API features will be unavailable"
+      "STEAM_API_KEY not provided - Steam API features will be unavailable"
+    );
+    return null;
+  }
+  return STEAM_API_KEY;
+};
+
+// Helper function to check STEAMWEBAPI key
+const checkWebApiKey = () => {
+  const STEAMWEBAPI_KEY = process.env.STEAMWEBAPI_KEY || "FSWJNSWYW8QSAQ6W";
+  if (!STEAMWEBAPI_KEY) {
+    console.warn(
+      "STEAMWEBAPI_KEY not provided - Steam WebAPI features will be unavailable"
     );
     return "dummy-key";
   }
-  return STEAM_API_KEY;
+  return STEAMWEBAPI_KEY;
 };
 
 // Steam WebAPI Service
@@ -29,35 +41,46 @@ const steamApiService = {
   async getProfile(steamId) {
     try {
       const STEAM_API_KEY = checkApiKey();
-      if (STEAM_API_KEY === "dummy-key") {
+      
+      if (!STEAM_API_KEY) {
+        console.warn("No Steam API key available, returning demo user");
         return {
           response: {
-            personaname: "Demo User",
-            avatarfull:
-              "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg",
-            profileurl: "https://steamcommunity.com/profiles/76561198000000000",
-          },
+            players: [{
+              personaname: "Demo User",
+              avatarfull: "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg",
+              profileurl: "https://steamcommunity.com/profiles/76561198000000000",
+              steamid: steamId
+            }]
+          }
         };
       }
 
-      const response = await axios.get(`${STEAM_API_BASE_URL}/profile`, {
+      console.log(`Fetching Steam profile for SteamID: ${steamId}`);
+      
+      // Use the official Steam API
+      const response = await axios.get(`${STEAM_API_BASE_URL}/ISteamUser/GetPlayerSummaries/v0002/`, {
         params: {
           key: STEAM_API_KEY,
-          id: steamId,
-          state: "detailed",
-          production: process.env.NODE_ENV === "production" ? 1 : 0,
+          steamids: steamId,
           // Add cache busting parameter to force fresh data
-          _nocache: Date.now(),
+          _t: Date.now(),
         },
       });
 
+      console.log("Steam API Response:", JSON.stringify(response.data));
+      
+      if (!response.data || !response.data.response || !response.data.response.players || response.data.response.players.length === 0) {
+        throw new Error("No player data returned from Steam API");
+      }
+      
       return response.data;
     } catch (error) {
       console.error(
         "Steam API Profile Error:",
         error.response?.data || error.message
       );
-      throw new Error("Failed to fetch Steam profile");
+      throw new Error(`Failed to fetch Steam profile: ${error.message}`);
     }
   },
 
@@ -74,18 +97,29 @@ const steamApiService = {
         throw new Error("User not found or has no Steam ID");
       }
 
+      console.log(`Refreshing profile for user ${userId} with SteamID ${user.steamId}`);
+
       // Get fresh profile data from Steam
       const profileData = await this.getProfile(user.steamId);
 
-      if (!profileData || !profileData.response) {
+      if (!profileData || !profileData.response || !profileData.response.players || profileData.response.players.length === 0) {
         throw new Error("Invalid profile data received from Steam");
       }
 
+      const steamUser = profileData.response.players[0];
+      console.log("Steam user data:", steamUser);
+
       // Update user profile data with fresh data
-      user.displayName = profileData.response.personaname || user.displayName;
-      user.avatar = profileData.response.avatarfull || user.avatar;
-      user.profileUrl = profileData.response.profileurl || user.profileUrl;
+      user.displayName = steamUser.personaname || user.displayName;
+      user.avatar = steamUser.avatarfull || user.avatar;
+      user.profileUrl = steamUser.profileurl || user.profileUrl;
       user.lastProfileUpdate = new Date();
+
+      console.log("Updated user profile:", {
+        displayName: user.displayName,
+        avatar: user.avatar,
+        profileUrl: user.profileUrl
+      });
 
       // Save updated user to database
       await user.save();
