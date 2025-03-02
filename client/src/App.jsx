@@ -50,9 +50,20 @@ function App() {
   const checkAuthStatus = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_URL}/auth/user`, { withCredentials: true });
+      console.log('Checking auth status with API URL:', API_URL);
+      const res = await axios.get(`${API_URL}/auth/user`, { 
+        withCredentials: true,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      console.log('Auth response:', res.data);
       if (res.data.authenticated) {
+        console.log('User authenticated:', res.data.user);
         setUser(res.data.user);
+      } else {
+        console.log('User not authenticated');
       }
     } catch (err) {
       console.error('Auth check error:', err);
@@ -81,8 +92,20 @@ function App() {
   };
 
   useEffect(() => {
+    // Check auth status on initial load and every 2 seconds until authenticated
     checkAuthStatus();
-  }, []);
+    
+    const interval = setInterval(() => {
+      if (!user) {
+        console.log('Rechecking auth status...');
+        checkAuthStatus();
+      } else {
+        clearInterval(interval);
+      }
+    }, 2000);
+    
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Get wallet balance from API
   const refreshWalletBalance = async () => {

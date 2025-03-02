@@ -41,7 +41,8 @@ app.use(
     origin: ["https://csp2p-1.onrender.com"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
+    exposedHeaders: ["set-cookie"]
   })
 );
 
@@ -56,10 +57,9 @@ const sessionMiddleware = session({
   saveUninitialized: true,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    secure: process.env.NODE_ENV === "production", 
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: true, // Always use secure cookies for HTTPS
+    sameSite: 'none', // Allow cross-site cookies
     httpOnly: true,
-    // Don't set domain restriction for cross-subdomain access
   },
   name: "cs2marketplace.sid",
 });

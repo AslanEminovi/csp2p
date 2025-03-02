@@ -124,6 +124,15 @@ router.get("/steam/return", async (req, res) => {
       }
       
       console.log("User successfully authenticated:", user.displayName);
+      console.log("Session ID:", req.sessionID);
+      
+      // Set a session cookie with SameSite=None
+      res.cookie('cs2marketplaceSession', req.sessionID, {
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+        secure: true,
+        sameSite: 'none',
+        path: '/',
+      });
       
       // Redirect back to client
       return res.redirect(CLIENT_URL);
