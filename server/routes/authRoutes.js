@@ -3,6 +3,7 @@ const passport = require("passport");
 const router = express.Router();
 const steamApiService = require("../services/steamApiService");
 const User = require("../models/User");
+const axios = require("axios");
 
 // Debug middleware
 router.use((req, res, next) => {
@@ -10,34 +11,129 @@ router.use((req, res, next) => {
   next();
 });
 
+// Define Steam OpenID constants
+const STEAM_OPENID_URL = 'https://steamcommunity.com/openid/login';
+const CLIENT_URL = 'https://csp2p-1.onrender.com';
+const API_URL = 'https://csp2p.onrender.com';
+const STEAM_API_KEY = process.env.STEAM_API_KEY || 'F754A63D38C9F63C247615D6F88D868C';
+
 // @route GET /auth/steam
-router.get("/steam", (req, res, next) => {
-  console.log("Steam auth request from:", req.headers.referer || "unknown");
+router.get("/steam", (req, res) => {
+  console.log("Steam auth request received");
   
-  // Store the client URL for redirect after authentication
-  req.session.returnTo = "https://csp2p-1.onrender.com";
+  const returnUrl = `${API_URL}/api/auth/steam/return`;
+  const realm = API_URL;
   
-  // Debug info
-  console.log("Starting Steam auth...");
+  // Create OpenID parameters
+  const params = new URLSearchParams({
+    'openid.ns': 'http://specs.openid.net/auth/2.0',
+    'openid.mode': 'checkid_setup',
+    'openid.return_to': returnUrl,
+    'openid.realm': realm,
+    'openid.identity': 'http://specs.openid.net/auth/2.0/identifier_select',
+    'openid.claimed_id': 'http://specs.openid.net/auth/2.0/identifier_select'
+  });
+
+  console.log("Redirecting to Steam OpenID:", `${STEAM_OPENID_URL}?${params.toString()}`);
   
-  passport.authenticate("steam", { session: true })(req, res, next);
+  // Redirect to Steam OpenID
+  res.redirect(`${STEAM_OPENID_URL}?${params.toString()}`);
 });
 
 // @route GET /auth/steam/return
-router.get(
-  "/steam/return",
-  passport.authenticate("steam", {
-    failureRedirect: "https://csp2p-1.onrender.com",
-    session: true
-  }),
-  (req, res) => {
-    console.log("Steam authentication successful");
-    console.log("User:", req.user ? req.user.displayName : "Unknown");
+router.get("/steam/return", async (req, res) => {
+  console.log("Steam OpenID return received");
+  
+  try {
+    if (req.query['openid.mode'] !== 'id_res') {
+      console.error("Invalid OpenID response");
+      return res.redirect(`${CLIENT_URL}/login-failed`);
+    }
     
-    // Redirect to client after successful authentication
-    res.redirect("https://csp2p-1.onrender.com");
+    // Extract SteamID from claimed_id
+    const claimedId = req.query['openid.claimed_id'];
+    const steamIdMatch = claimedId.match(/\/id\/(\d+)$/);
+    
+    if (!steamIdMatch) {
+      console.error("Could not extract SteamID from:", claimedId);
+      return res.redirect(`${CLIENT_URL}/login-failed`);
+    }
+    
+    const steamId = steamIdMatch[1];
+    console.log("Successfully extracted SteamID:", steamId);
+    
+    // Validate the response with Steam
+    const params = new URLSearchParams();
+    for (const key in req.query) {
+      params.append(key, req.query[key]);
+    }
+    params.set('openid.mode', 'check_authentication');
+    
+    const validationResponse = await axios.post(STEAM_OPENID_URL, params.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+    
+    if (!validationResponse.data.includes('is_valid:true')) {
+      console.error("Steam OpenID validation failed:", validationResponse.data);
+      return res.redirect(`${CLIENT_URL}/login-failed`);
+    }
+    
+    // Get user details from Steam API
+    const steamUserUrl = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key=${STEAM_API_KEY}&steamids=${steamId}`;
+    const steamResponse = await axios.get(steamUserUrl);
+    const userData = steamResponse.data.response.players[0];
+    
+    if (!userData) {
+      console.error("Could not fetch user data from Steam API");
+      return res.redirect(`${CLIENT_URL}/login-failed`);
+    }
+    
+    console.log("Steam user data retrieved:", {
+      steamId: userData.steamid,
+      name: userData.personaname,
+      avatar: userData.avatarfull
+    });
+    
+    // Find or create user in database
+    let user = await User.findOne({ steamId: userData.steamid });
+    
+    if (!user) {
+      // Create new user
+      user = await User.create({
+        steamId: userData.steamid,
+        displayName: userData.personaname,
+        avatar: userData.avatarfull,
+        walletBalance: 0,
+        lastProfileUpdate: new Date(),
+      });
+      console.log("New user created:", user._id);
+    } else {
+      // Update existing user
+      user.displayName = userData.personaname;
+      user.avatar = userData.avatarfull;
+      user.lastProfileUpdate = new Date();
+      await user.save();
+      console.log("Existing user updated:", user._id);
+    }
+    
+    // Log in the user
+    req.login(user, (err) => {
+      if (err) {
+        console.error("Error during login:", err);
+        return res.redirect(`${CLIENT_URL}/login-failed`);
+      }
+      
+      console.log("User successfully authenticated:", user.displayName);
+      
+      // Redirect back to client
+      return res.redirect(CLIENT_URL);
+    });
+    
+  } catch (error) {
+    console.error("Error processing Steam authentication:", error);
+    res.redirect(`${CLIENT_URL}/login-failed`);
   }
-);
+});
 
 // @route GET /auth/user
 router.get("/user", async (req, res) => {
