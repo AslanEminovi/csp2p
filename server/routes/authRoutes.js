@@ -4,6 +4,12 @@ const router = express.Router();
 const steamApiService = require("../services/steamApiService");
 const User = require("../models/User");
 
+// Debug middleware
+router.use((req, res, next) => {
+  console.log("Auth route accessed:", req.method, req.path);
+  next();
+});
+
 // @route GET /auth/steam
 router.get("/steam", (req, res, next) => {
   console.log("Steam auth request from:", req.headers.referer || "unknown");
@@ -11,15 +17,8 @@ router.get("/steam", (req, res, next) => {
   if (req.headers.referer) {
     req.session.returnTo = req.headers.referer;
   }
-  // Encode the return URL in base64
-  const returnTo = Buffer.from(
-    req.session.returnTo ||
-      process.env.CLIENT_URL ||
-      "https://csp2p-1.onrender.com"
-  ).toString("base64");
-  req.session.encodedReturnTo = returnTo;
   passport.authenticate("steam", {
-    returnTo: returnTo,
+    failureRedirect: process.env.CLIENT_URL || "https://csp2p-1.onrender.com",
   })(req, res, next);
 });
 
@@ -31,16 +30,12 @@ router.get(
   }),
   (req, res) => {
     // Successful authentication
-    // Decode the return URL from base64
-    const returnTo = req.session.encodedReturnTo
-      ? Buffer.from(req.session.encodedReturnTo, "base64").toString()
-      : process.env.CLIENT_URL || "https://csp2p-1.onrender.com";
-
+    const clientUrl = process.env.CLIENT_URL || "https://csp2p-1.onrender.com";
+    const returnTo = req.session.returnTo || clientUrl;
     console.log("Redirecting after auth to:", returnTo);
 
-    // Clear the stored URLs
+    // Clear the stored URL
     delete req.session.returnTo;
-    delete req.session.encodedReturnTo;
 
     // Redirect back to the client
     res.redirect(returnTo);

@@ -87,10 +87,11 @@ app.use("/api/user", userRoutes);
 
 // Handle React routing in production, return all non-api requests to React app
 if (process.env.NODE_ENV === "production") {
-  app.get("*", function (req, res) {
-    if (!req.path.startsWith("/api/")) {
-      res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+  app.get("*", function (req, res, next) {
+    if (req.path.startsWith("/api/")) {
+      return next();
     }
+    res.sendFile(path.join(__dirname, "../client/build", "index.html"));
   });
 } else {
   // Development welcome route
@@ -102,6 +103,12 @@ if (process.env.NODE_ENV === "production") {
     });
   });
 }
+
+// Handle 404 for API routes
+app.use("/api/*", (req, res) => {
+  console.log("404 API route not found:", req.originalUrl);
+  res.status(404).json({ error: "API endpoint not found" });
+});
 
 // Steam Web API webhook endpoint
 app.post("/api/webhooks/steam-trade", async (req, res) => {
@@ -220,34 +227,4 @@ app.set("io", io);
 
 // Start the server
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log("WebSocket server initialized");
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-});
-
-// Export the Express API
-module.exports = app;
-
-// Handle server error events
-server.on("error", (err) => {
-  if (err.code === "EADDRINUSE") {
-    console.error(
-      `Port ${PORT} is already in use. Please free it or use a different port.`
-    );
-    process.exit(1);
-  } else {
-    console.error("Server error:", err);
-  }
-});
-
-// Graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down gracefully");
-  server.close(() => {
-    console.log("Server closed");
-    mongoose.connection.close(false, () => {
-      console.log("MongoDB connection closed");
-      process.exit(0);
-    });
-  });
-});
+  console.log(`
