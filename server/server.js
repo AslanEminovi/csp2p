@@ -29,7 +29,9 @@ const app = express();
 // Enable CORS for your React client
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://192.168.1.101:3000"],
+    origin: process.env.CLIENT_URL 
+      ? [process.env.CLIENT_URL] 
+      : ["http://localhost:3000", "https://cs2-marketplace.onrender.com"],
     credentials: true,
   })
 );
@@ -128,10 +130,12 @@ const PORT = process.env.PORT || 5001;
 // Create HTTP server and integrate with Express
 const server = http.createServer(app);
 
-// Initialize Socket.io
+// Initialize Socket.io with proper CORS for deployment
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:3000", "http://192.168.1.101:3000"],
+    origin: process.env.CLIENT_URL 
+      ? [process.env.CLIENT_URL] 
+      : ["http://localhost:3000", "https://cs2-marketplace.onrender.com"],
     methods: ["GET", "POST"],
     credentials: true
   }

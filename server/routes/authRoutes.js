@@ -18,12 +18,13 @@ router.get("/steam", (req, res, next) => {
 router.get(
   "/steam/return",
   passport.authenticate("steam", {
-    failureRedirect: "http://192.168.1.101:3000/login",
+    failureRedirect: process.env.CLIENT_URL || "https://cs2-marketplace.onrender.com",
   }),
   (req, res) => {
     // Successful authentication
-    // Get stored return URL from session or use default
-    const returnTo = req.session.returnTo || "http://192.168.1.101:3000";
+    // Get stored return URL from session or use default client URL
+    const clientUrl = process.env.CLIENT_URL || "https://cs2-marketplace.onrender.com";
+    const returnTo = req.session.returnTo || clientUrl;
     console.log("Redirecting after auth to:", returnTo);
     
     // Clear the stored URL

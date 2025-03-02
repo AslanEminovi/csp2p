@@ -1,16 +1,17 @@
 # CS2 Marketplace
 
-A peer-to-peer marketplace for CS2 (Counter-Strike 2) items with Steam integration.
+A peer-to-peer marketplace for CS2 (Counter-Strike 2) items with Steam integration, featuring a fully localized interface for Georgian users with GEL currency support alongside USD.
 
 ## Features
 
-- Steam authentication
-- Real wallet system with USD and GEL currencies
-- Inventory management
-- Marketplace listings
-- Trade offers and counter-offers
-- Secure webhooks for trade status updates
-- User verification system
+- **Steam Integration**: Authentication and inventory sync through Steam API
+- **Item Marketplace**: Browse, buy, and sell CS2 items with price history tracking
+- **Trade System**: Secure peer-to-peer trading with escrow and dispute resolution
+- **Wallet System**: Supports both USD and GEL currencies
+- **User Verification**: Three-tier verification system for increased security and limits
+- **Internationalization**: Georgian and English language support
+- **3D Item Cards**: Interactive 3D item previews using CSS3D transforms
+- **Real-time Notifications**: WebSocket-powered updates for trades, offers, and marketplace activity
 
 ## Technologies
 
@@ -19,8 +20,63 @@ A peer-to-peer marketplace for CS2 (Counter-Strike 2) items with Steam integrati
 - **Database**: MongoDB
 - **Authentication**: Passport.js with Steam OAuth
 - **API Integration**: Steam Web API
+- **Real-time Updates**: Socket.io
 
-## Setup
+## Deployment Instructions for Render.com
+
+### Backend Deployment
+
+1. Create a new Render.com account at [render.com](https://render.com).
+2. In your dashboard, click "New" and select "Web Service".
+3. Connect your GitHub repository or use the "Manual Deploy" option.
+4. Configure the service with the following settings:
+   - **Name**: cs2-marketplace-api
+   - **Root Directory**: server
+   - **Build Command**: npm install
+   - **Start Command**: npm start
+   - **Environment Variables**: Set up the following variables:
+     ```
+     PORT=10000
+     MONGO_URI=your_mongodb_connection_string
+     SESSION_SECRET=your_session_secret
+     STEAMWEBAPI_KEY=your_steam_web_api_key
+     STEAM_API_KEY=your_steam_api_key
+     CALLBACK_URL=https://cs2-marketplace-api.onrender.com/auth/steam/return
+     API_URL=https://cs2-marketplace-api.onrender.com
+     CLIENT_URL=https://cs2-marketplace.onrender.com
+     ```
+5. Click "Create Web Service" and wait for deployment.
+
+### Frontend Deployment
+
+1. In your Render.com dashboard, click "New" and select "Static Site".
+2. Connect your GitHub repository or use the "Manual Deploy" option.
+3. Configure the site with the following settings:
+   - **Name**: cs2-marketplace
+   - **Root Directory**: client
+   - **Build Command**: npm install && npm run build
+   - **Publish Directory**: build
+   - **Environment Variables**: Set up the following variables:
+     ```
+     REACT_APP_API_URL=https://cs2-marketplace-api.onrender.com
+     ```
+4. Click "Create Static Site" and wait for deployment.
+
+### Post-Deployment Setup
+
+1. In your Steam Developer Dashboard, update the allowed callback URL to:
+   ```
+   https://cs2-marketplace-api.onrender.com/auth/steam/return
+   ```
+
+2. Update your MongoDB connection settings if needed.
+
+3. Test the application by navigating to:
+   ```
+   https://cs2-marketplace.onrender.com
+   ```
+
+## Local Development Setup
 
 ### Prerequisites
 
@@ -70,20 +126,6 @@ A peer-to-peer marketplace for CS2 (Counter-Strike 2) items with Steam integrati
    npm start
    ```
 
-## Environment Variables
-
-The following environment variables are required:
-
-- `PORT`: Server port (default: 5001)
-- `NODE_ENV`: Environment ('development' or 'production')
-- `CLIENT_URL`: URL of the client application
-- `SESSION_SECRET`: Secret for session encryption
-- `STEAM_WEBHOOK_SECRET`: Secret for validating webhook requests
-- `MONGODB_URI`: MongoDB connection string
-- `STEAM_API_KEY`: Your Steam Web API key
-- `STEAM_API_BASE_URL`: Base URL for Steam Web API
-- `WEBHOOK_URL`: URL for receiving trade webhooks
-
 ## API Routes
 
 ### Authentication
@@ -109,17 +151,14 @@ The following environment variables are required:
 - `PUT /marketplace/cancel/:itemId`: Cancel a listing
 - `PUT /marketplace/update-price/:itemId`: Update item price
 
-### Offers
-- `POST /offers/:itemId`: Create an offer
-- `GET /offers/received`: Get received offers
-- `GET /offers/sent`: Get sent offers
-- `PUT /offers/:itemId/:offerId/accept`: Accept an offer
-- `PUT /offers/:itemId/:offerId/decline`: Decline an offer
-- `POST /offers/:itemId/:offerId/counterOffer`: Create counter offer
-
 ### Trades
 - `GET /trades/history`: Get trade history
 - `GET /trades/:tradeId`: Get specific trade details
+- `PUT /trades/:tradeId/seller-approve`: Seller approves trade
+- `PUT /trades/:tradeId/seller-sent`: Seller confirms item sent
+- `PUT /trades/:tradeId/buyer-confirm`: Buyer confirms receipt
+- `PUT /trades/:tradeId/cancel`: Cancel a trade
+- `PUT /trades/:tradeId/check-steam-status`: Check Steam trade status
 
 ### Wallet
 - `GET /wallet/balance`: Get wallet balance
@@ -128,14 +167,10 @@ The following environment variables are required:
 - `POST /wallet/withdraw`: Withdraw funds
 - `POST /wallet/exchange`: Exchange between currencies
 
-## License
+## WebSocket Events
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgements
-
-- [Steam Web API](https://developer.valvesoftware.com/wiki/Steam_Web_API)
-- [Passport-Steam](https://github.com/liamcurry/passport-steam)
-- [MongoDB](https://www.mongodb.com/)
-- [React](https://reactjs.org/)
-- [Express](https://expressjs.com/)
+- `notification`: Real-time notifications
+- `trade_update`: Updates on trade status changes
+- `market_update`: Updates for marketplace listings
+- `inventory_update`: Changes to user's inventory
+- `wallet_update`: Updates to wallet balance

@@ -20,6 +20,7 @@ class SocketService {
 
     // Connect to the WebSocket server (use the same URL as the API)
     const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    console.log('Connecting to WebSocket server at:', apiUrl);
     this.socket = io(apiUrl, {
       withCredentials: true,
       reconnectionAttempts: this.maxReconnectAttempts,

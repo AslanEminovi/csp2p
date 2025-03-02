@@ -18,8 +18,8 @@ passport.deserializeUser(async (id, done) => {
 passport.use(
   new SteamStrategy(
     {
-      returnURL: process.env.CALLBACK_URL,
-      realm: "http://192.168.1.101:" + (process.env.PORT || 5001) + "/",
+      returnURL: process.env.CALLBACK_URL || "https://cs2-marketplace-api.onrender.com/auth/steam/return",
+      realm: process.env.API_URL || "https://cs2-marketplace-api.onrender.com/",
       apiKey: process.env.STEAM_API_KEY,
     },
     async (identifier, profile, done) => {
