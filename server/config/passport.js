@@ -18,8 +18,12 @@ passport.deserializeUser(async (id, done) => {
 passport.use(
   new SteamStrategy(
     {
-      returnURL: "https://csp2p.onrender.com/api/auth/steam/return",
-      realm: "https://csp2p.onrender.com",
+      returnURL: process.env.NODE_ENV === "production" 
+        ? "https://csp2p.onrender.com/api/auth/steam/return" 
+        : "http://localhost:5001/api/auth/steam/return",
+      realm: process.env.NODE_ENV === "production"
+        ? "https://csp2p.onrender.com"
+        : "http://localhost:5001",
       apiKey: process.env.STEAM_API_KEY || "F754A63D38C9F63C247615D6F88D868C",
     },
     async (identifier, profile, done) => {

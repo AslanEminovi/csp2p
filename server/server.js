@@ -57,8 +57,8 @@ const sessionMiddleware = session({
   saveUninitialized: true,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    secure: true, // Always use secure cookies for HTTPS
-    sameSite: 'none', // Allow cross-site cookies
+    secure: process.env.NODE_ENV === "production", // Only use secure cookies in production
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     httpOnly: true,
   },
   name: "cs2marketplace.sid",

@@ -50,61 +50,15 @@ function App() {
   const checkAuthStatus = async () => {
     try {
       setLoading(true);
-      console.log('Checking auth status with API URL:', API_URL);
-      
-      // Add a cache-busting parameter to avoid browser caching
-      const timestamp = new Date().getTime();
-      
-      const res = await axios.get(`${API_URL}/auth/user?_t=${timestamp}`, { 
-        withCredentials: true,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
+      const res = await axios.get(`${API_URL}/auth/user`, { 
+        withCredentials: true 
       });
       
-      console.log('Auth response:', res.data);
-      
-      if (res.data.authenticated && res.data.user) {
-        console.log('User authenticated:', res.data.user);
-        
-        // Make sure we have all required fields with defaults if necessary
-        const userWithDefaults = {
-          ...res.data.user,
-          walletBalance: res.data.user.walletBalance || 0,
-          walletBalanceGEL: res.data.user.walletBalanceGEL || 0
-        };
-        
-        setUser(userWithDefaults);
-        console.log('User state updated with:', userWithDefaults);
-      } else {
-        console.log('User not authenticated');
-        setUser(null);
+      if (res.data.authenticated) {
+        setUser(res.data.user);
       }
     } catch (err) {
       console.error('Auth check error:', err);
-      // Try again with a direct call to the API URL without /api prefix
-      try {
-        console.log('Trying alternative API URL...');
-        const timestamp = new Date().getTime();
-        const alternativeUrl = API_URL.replace('/api', '');
-        
-        const res = await axios.get(`${alternativeUrl}/api/auth/user?_t=${timestamp}`, { 
-          withCredentials: true
-        });
-        
-        console.log('Alternative auth response:', res.data);
-        
-        if (res.data.authenticated && res.data.user) {
-          setUser(res.data.user);
-          console.log('User authenticated through alternative URL');
-        }
-      } catch (alternativeErr) {
-        console.error('Alternative auth check also failed:', alternativeErr);
-      }
     } finally {
       setLoading(false);
     }
@@ -130,20 +84,9 @@ function App() {
   };
 
   useEffect(() => {
-    // Check auth status on initial load and every 2 seconds until authenticated
+    // Only check auth status once on initial load
     checkAuthStatus();
-    
-    const interval = setInterval(() => {
-      if (!user) {
-        console.log('Rechecking auth status...');
-        checkAuthStatus();
-      } else {
-        clearInterval(interval);
-      }
-    }, 2000);
-    
-    return () => clearInterval(interval);
-  }, [user]);
+  }, []);
 
   // Get wallet balance from API
   const refreshWalletBalance = async () => {
