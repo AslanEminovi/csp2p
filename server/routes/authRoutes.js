@@ -17,7 +17,15 @@ router.get("/steam", (req, res, next) => {
   if (req.headers.referer) {
     req.session.returnTo = req.headers.referer;
   }
-  passport.authenticate("steam")(req, res, next);
+  
+  // Debug info
+  console.log("Starting Steam auth with the following configuration:");
+  console.log("- API_URL:", process.env.API_URL);
+  console.log("- CLIENT_URL:", process.env.CLIENT_URL);
+  console.log("- CALLBACK_URL:", process.env.CALLBACK_URL);
+  console.log("- NODE_ENV:", process.env.NODE_ENV);
+  
+  passport.authenticate("steam", { session: true })(req, res, next);
 });
 
 // @route GET /auth/steam/return
@@ -25,6 +33,7 @@ router.get(
   "/steam/return",
   passport.authenticate("steam", {
     failureRedirect: process.env.CLIENT_URL || "https://csp2p-1.onrender.com",
+    session: true
   }),
   (req, res) => {
     // Successful authentication

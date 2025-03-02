@@ -20,11 +20,11 @@ passport.use(
     {
       returnURL: process.env.CALLBACK_URL || 
         (process.env.NODE_ENV === "production"
-          ? "https://cs2p2p-api.onrender.com/api/auth/steam/return"
+          ? "https://csp2p.onrender.com/api/auth/steam/return"
           : "http://localhost:5001/api/auth/steam/return"),
       realm: process.env.API_URL || 
         (process.env.NODE_ENV === "production"
-          ? "https://cs2p2p-api.onrender.com"
+          ? "https://csp2p.onrender.com"
           : "http://localhost:5001"),
       apiKey: process.env.STEAM_API_KEY,
     },

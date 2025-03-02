@@ -37,7 +37,7 @@ const app = express();
 app.use(
   cors({
     origin: process.env.NODE_ENV === "production"
-      ? [process.env.CLIENT_URL || "https://csp2p-1.onrender.com", process.env.API_URL || "https://cs2p2p-api.onrender.com"]
+      ? [process.env.CLIENT_URL || "https://csp2p-1.onrender.com", process.env.API_URL || "https://csp2p.onrender.com"]
       : ["http://localhost:3000", "http://localhost:5001"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -183,9 +183,7 @@ const server = http.createServer(app);
 // Initialize Socket.io with proper CORS for deployment
 const io = new Server(server, {
   cors: {
-    origin: process.env.NODE_ENV === "production"
-      ? [process.env.CLIENT_URL || "https://csp2p-1.onrender.com"]
-      : ["http://localhost:3000"],
+    origin: "*", // Allow all origins to ensure WebSockets work properly
     methods: ["GET", "POST"],
     credentials: true,
   },

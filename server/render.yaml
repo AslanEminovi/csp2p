@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cs2p2p-api
+    name: csp2p
     env: node
     buildCommand: npm install
     startCommand: npm start
@@ -12,9 +12,9 @@ services:
       - key: SESSION_SECRET
         value: cs2marketplaceSecretKey789456123
       - key: CALLBACK_URL
-        value: https://cs2p2p-api.onrender.com/api/auth/steam/return
+        value: https://csp2p.onrender.com/api/auth/steam/return
       - key: API_URL
-        value: https://cs2p2p-api.onrender.com
+        value: https://csp2p.onrender.com
       - key: CLIENT_URL
         value: https://csp2p-1.onrender.com
       - key: MONGO_URI

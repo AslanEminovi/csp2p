@@ -3,7 +3,7 @@
  */
 
 export const API_URL =
-  process.env.REACT_APP_API_URL || "https://cs2p2p-api.onrender.com/api";
+  process.env.REACT_APP_API_URL || "https://csp2p.onrender.com/api";
 
 // Platform fee (as a percentage)
 export const PLATFORM_FEE = 2.5;
