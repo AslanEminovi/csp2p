@@ -50,6 +50,11 @@ app.use(
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
+// Serve static files from the React app in production
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(__dirname, "../client/build")));
+}
+
 // Express session configuration (required by Passport)
 const sessionMiddleware = session({
   secret: SESSION_SECRET,
@@ -72,13 +77,31 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // API Routes
-app.use("/auth", authRoutes);
-app.use("/inventory", inventoryRoutes);
-app.use("/marketplace", marketplaceRoutes);
-app.use("/offers", offerRoutes);
-app.use("/trades", tradeRoutes);
-app.use("/wallet", walletRoutes);
-app.use("/user", userRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/marketplace", marketplaceRoutes);
+app.use("/api/offers", offerRoutes);
+app.use("/api/trades", tradeRoutes);
+app.use("/api/wallet", walletRoutes);
+app.use("/api/user", userRoutes);
+
+// Handle React routing in production, return all non-api requests to React app
+if (process.env.NODE_ENV === "production") {
+  app.get("*", function (req, res) {
+    if (!req.path.startsWith("/api/")) {
+      res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+    }
+  });
+} else {
+  // Development welcome route
+  app.get("/", (req, res) => {
+    res.json({
+      message: "CS2 Marketplace API Server",
+      environment: process.env.NODE_ENV || "development",
+      status: "running",
+    });
+  });
+}
 
 // Steam Web API webhook endpoint
 app.post("/api/webhooks/steam-trade", async (req, res) => {
@@ -198,7 +221,7 @@ app.set("io", io);
 // Start the server
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`WebSocket server initialized`);
+  console.log("WebSocket server initialized");
   console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
 });
 
