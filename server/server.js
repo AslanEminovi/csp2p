@@ -29,17 +29,10 @@ const app = express();
 // Enable CORS for your React client
 app.use(
   cors({
-    origin: process.env.CLIENT_URL
-      ? [
-          process.env.CLIENT_URL,
-          "https://cs2p2p.onrender.com",
-          "https://cs2p2p-api.onrender.com",
-        ]
-      : [
-          "http://localhost:3000",
-          "https://cs2p2p.onrender.com",
-          "https://cs2p2p-api.onrender.com",
-        ],
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["https://csp2p-1.onrender.com", "https://csp2p-api.onrender.com"]
+        : ["http://localhost:3000", "http://localhost:5001"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -154,7 +147,7 @@ const io = new Server(server, {
   cors: {
     origin:
       process.env.NODE_ENV === "production"
-        ? ["https://cs2p2p.onrender.com"]
+        ? ["https://csp2p-1.onrender.com"]
         : ["http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true,
