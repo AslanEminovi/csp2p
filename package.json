@@ -1,0 +1,19 @@
+{
+  "name": "cs2-marketplace",
+  "version": "1.0.0",
+  "description": "CS2 Marketplace full-stack application",
+  "scripts": {
+    "install-client": "cd client && npm install",
+    "install-server": "cd server && npm install",
+    "install": "npm run install-client && npm run install-server",
+    "build-client": "cd client && npm run build",
+    "build-server": "cd server && npm run build",
+    "build": "npm run build-client && npm run build-server",
+    "start-client": "cd client && npm start",
+    "start-server": "cd server && npm start",
+    "dev": "concurrently \"npm run start-server\" \"npm run start-client\""
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0"
+  }
+}
