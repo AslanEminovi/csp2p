@@ -11,9 +11,10 @@ const STEAM_API_BASE_URL =
 const checkApiKey = () => {
   const STEAM_API_KEY = process.env.STEAMWEBAPI_KEY;
   if (!STEAM_API_KEY) {
-    throw new Error(
-      "STEAMWEBAPI_KEY environment variable is required but not provided"
+    console.warn(
+      "STEAMWEBAPI_KEY not provided - Steam API features will be unavailable"
     );
+    return "dummy-key";
   }
   return STEAM_API_KEY;
 };
@@ -28,6 +29,17 @@ const steamApiService = {
   async getProfile(steamId) {
     try {
       const STEAM_API_KEY = checkApiKey();
+      if (STEAM_API_KEY === "dummy-key") {
+        return {
+          response: {
+            personaname: "Demo User",
+            avatarfull:
+              "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg",
+            profileurl: "https://steamcommunity.com/profiles/76561198000000000",
+          },
+        };
+      }
+
       const response = await axios.get(`${STEAM_API_BASE_URL}/profile`, {
         params: {
           key: STEAM_API_KEY,
@@ -106,6 +118,10 @@ const steamApiService = {
   ) {
     try {
       const STEAM_API_KEY = checkApiKey();
+      if (STEAM_API_KEY === "dummy-key") {
+        return { success: false, message: "Steam API key not configured" };
+      }
+
       const response = await axios.post(
         `${STEAM_API_BASE_URL}/trade/create?key=${STEAM_API_KEY}`,
         {

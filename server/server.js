@@ -8,6 +8,13 @@ const bodyParser = require("body-parser");
 const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
+const crypto = require("crypto");
+
+// Generate default secrets if not provided
+const SESSION_SECRET =
+  process.env.SESSION_SECRET || crypto.randomBytes(32).toString("hex");
+const STEAM_WEBHOOK_SECRET =
+  process.env.STEAM_WEBHOOK_SECRET || crypto.randomBytes(32).toString("hex");
 
 // Suppress the Mongoose strictQuery warning for Mongoose 7
 mongoose.set("strictQuery", false);
@@ -43,16 +50,9 @@ app.use(
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
-// Check for session secret
-if (!process.env.SESSION_SECRET) {
-  throw new Error(
-    "SESSION_SECRET environment variable is required but not provided"
-  );
-}
-
 // Express session configuration (required by Passport)
 const sessionMiddleware = session({
-  secret: process.env.SESSION_SECRET,
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -92,8 +92,7 @@ app.post("/api/webhooks/steam-trade", async (req, res) => {
     }
 
     // Validate the webhook signature
-    const crypto = require("crypto");
-    const webhookSecret = process.env.STEAM_WEBHOOK_SECRET;
+    const webhookSecret = STEAM_WEBHOOK_SECRET;
 
     if (!webhookSecret) {
       console.error("STEAM_WEBHOOK_SECRET not configured");
