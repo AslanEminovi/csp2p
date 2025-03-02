@@ -7,15 +7,16 @@ const Trade = require("../models/Trade");
 const STEAM_API_BASE_URL =
   process.env.STEAM_API_BASE_URL || "https://www.steamwebapi.com/steam/api";
 
-// API key must be provided via environment variables
-const STEAM_API_KEY = process.env.STEAMWEBAPI_KEY;
-
-// Check if API key is missing and throw error to prevent service from starting with invalid config
-if (!STEAM_API_KEY) {
-  throw new Error(
-    "STEAMWEBAPI_KEY environment variable is required but not provided"
-  );
-}
+// Helper function to check API key
+const checkApiKey = () => {
+  const STEAM_API_KEY = process.env.STEAMWEBAPI_KEY;
+  if (!STEAM_API_KEY) {
+    throw new Error(
+      "STEAMWEBAPI_KEY environment variable is required but not provided"
+    );
+  }
+  return STEAM_API_KEY;
+};
 
 // Steam WebAPI Service
 const steamApiService = {
@@ -26,6 +27,7 @@ const steamApiService = {
    */
   async getProfile(steamId) {
     try {
+      const STEAM_API_KEY = checkApiKey();
       const response = await axios.get(`${STEAM_API_BASE_URL}/profile`, {
         params: {
           key: STEAM_API_KEY,
@@ -103,6 +105,7 @@ const steamApiService = {
     message
   ) {
     try {
+      const STEAM_API_KEY = checkApiKey();
       const response = await axios.post(
         `${STEAM_API_BASE_URL}/trade/create?key=${STEAM_API_KEY}`,
         {
@@ -140,6 +143,7 @@ const steamApiService = {
    */
   async acceptTradeOffer(steamLoginSecure, tradeOfferId, partnerSteamId) {
     try {
+      const STEAM_API_KEY = checkApiKey();
       const response = await axios.put(
         `${STEAM_API_BASE_URL}/trade/accept?key=${STEAM_API_KEY}`,
         {
@@ -172,6 +176,7 @@ const steamApiService = {
    */
   async declineTradeOffer(steamLoginSecure, tradeOfferId) {
     try {
+      const STEAM_API_KEY = checkApiKey();
       const response = await axios.put(
         `${STEAM_API_BASE_URL}/trade/decline?key=${STEAM_API_KEY}`,
         {
@@ -203,6 +208,7 @@ const steamApiService = {
    */
   async cancelTradeOffer(steamLoginSecure, tradeOfferId) {
     try {
+      const STEAM_API_KEY = checkApiKey();
       const response = await axios.put(
         `${STEAM_API_BASE_URL}/trade/cancel?key=${STEAM_API_KEY}`,
         {
@@ -233,6 +239,7 @@ const steamApiService = {
    */
   async getSentTradeOffers(steamLoginSecure) {
     try {
+      const STEAM_API_KEY = checkApiKey();
       const response = await axios.post(
         `${STEAM_API_BASE_URL}/trade/sent?key=${STEAM_API_KEY}`,
         {
