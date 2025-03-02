@@ -19,9 +19,8 @@ const STEAM_WEBHOOK_SECRET =
 // Suppress the Mongoose strictQuery warning for Mongoose 7
 mongoose.set("strictQuery", false);
 
-const { connectDB } = require("./config/db"); // Import MongoDB connection function
-// Connect to MongoDB immediately
-connectDB();
+const { connectDB, dbPromise } = require("./config/db"); // Import MongoDB connection function
+// We'll await the database connection before starting the server
 require("./config/passport"); // Set up Passport strategy
 
 // Import routes
@@ -231,9 +230,22 @@ socketService.init(io);
 // Export io instance for use in other files
 app.set("io", io);
 
-// Start the server
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
-  console.log("WebSocket server initialized");
-});
+// Start the server after ensuring database connection
+const startServer = async () => {
+  try {
+    // Wait for database connection
+    await dbPromise;
+    
+    // Start the server
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+      console.log("WebSocket server initialized");
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1);
+  }
+};
+
+startServer();

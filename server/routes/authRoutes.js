@@ -43,26 +43,34 @@ router.get(
 
 // @route GET /auth/user
 router.get("/user", async (req, res) => {
+  console.log("Auth check request received");
+  console.log("Session ID:", req.sessionID);
+  console.log("User in session:", req.user ? `Yes - ${req.user.steamId}` : "No");
+  
   if (req.user) {
     try {
-      // Automatically refresh the user's profile if it hasn't been updated in the last hour
-      const lastUpdateTime = req.user.lastProfileUpdate
-        ? new Date(req.user.lastProfileUpdate)
-        : null;
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-
-      if (!lastUpdateTime || lastUpdateTime < oneHourAgo) {
-        // Try to refresh profile data from Steam
-        try {
-          await steamApiService.refreshUserProfile(req.user._id);
-          // Reload user from database to get fresh data
-          req.user = await User.findById(req.user._id);
-        } catch (refreshError) {
-          console.error("Profile auto-refresh failed:", refreshError);
-          // Continue with existing data if refresh fails
+      console.log(`Found user in session: ${req.user.displayName} (${req.user.steamId})`);
+      
+      // Print debug info about this user
+      console.log("User ID:", req.user._id);
+      console.log("Display Name:", req.user.displayName);
+      console.log("Avatar URL:", req.user.avatar);
+      console.log("Last Update:", req.user.lastProfileUpdate);
+      
+      // Try to refresh the user from the database to ensure we have the latest data
+      try {
+        const freshUser = await User.findById(req.user._id);
+        if (freshUser) {
+          console.log("Successfully retrieved fresh user data from database");
+          req.user = freshUser;
+        } else {
+          console.error("User exists in session but not in database!");
         }
+      } catch (dbError) {
+        console.error("Error fetching user from database:", dbError);
       }
 
+      // Return user data
       res.json({
         authenticated: true,
         user: {
@@ -72,16 +80,25 @@ router.get("/user", async (req, res) => {
           avatar: req.user.avatar,
           tradeUrl: req.user.tradeUrl,
           tradeUrlExpiry: req.user.tradeUrlExpiry,
-          walletBalance: req.user.walletBalance,
-          walletBalanceGEL: req.user.walletBalanceGEL,
+          walletBalance: req.user.walletBalance || 0,
+          walletBalanceGEL: req.user.walletBalanceGEL || 0,
           lastProfileUpdate: req.user.lastProfileUpdate,
         },
       });
     } catch (error) {
       console.error("Error fetching user data:", error);
-      res.status(500).json({ error: "Failed to fetch user data" });
+      res.status(500).json({ error: "Failed to fetch user data", details: error.message });
     }
   } else {
+    console.log("No user found in session - not authenticated");
+    
+    // Debug session storage
+    try {
+      console.log("Session data:", req.session);
+    } catch (e) {
+      console.error("Error accessing session data:", e);
+    }
+    
     res.json({ authenticated: false });
   }
 });

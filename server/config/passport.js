@@ -3,14 +3,23 @@ const SteamStrategy = require("passport-steam").Strategy;
 const User = require("../models/User");
 
 passport.serializeUser((user, done) => {
+  console.log("Serializing user:", user.id);
   done(null, user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
+  console.log("Deserializing user ID:", id);
   try {
     const user = await User.findById(id);
-    done(null, user);
+    if (user) {
+      console.log("User found during deserialization:", user.displayName);
+      done(null, user);
+    } else {
+      console.error("User not found during deserialization!");
+      done(null, null);
+    }
   } catch (err) {
+    console.error("Error during deserialization:", err);
     done(err);
   }
 });
