@@ -36,10 +36,9 @@ const app = express();
 // Enable CORS for your React client
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? ["https://csp2p-1.onrender.com", "https://csp2p-api.onrender.com"]
-        : ["http://localhost:3000", "http://localhost:5001"],
+    origin: process.env.NODE_ENV === "production"
+      ? [process.env.CLIENT_URL || "https://csp2p-1.onrender.com", process.env.API_URL || "https://cs2p2p-api.onrender.com"]
+      : ["http://localhost:3000", "http://localhost:5001"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -57,10 +56,10 @@ const sessionMiddleware = session({
   saveUninitialized: true,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 1 day
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production", 
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     httpOnly: true,
-    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined,
+    // Don't set domain restriction for cross-subdomain access
   },
   name: "cs2marketplace.sid",
 });
@@ -79,35 +78,6 @@ app.use("/api/offers", offerRoutes);
 app.use("/api/trades", tradeRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/user", userRoutes);
-
-// Handle React routing in production
-if (process.env.NODE_ENV === "production") {
-  // Serve static files from the React app
-  app.use(express.static(path.join(__dirname, "../client/build")));
-
-  // Handle non-API routes by serving the React app
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api/")) {
-      return next();
-    }
-    res.sendFile(path.join(__dirname, "../client/build", "index.html"));
-  });
-} else {
-  // Development welcome route
-  app.get("/", (req, res) => {
-    res.json({
-      message: "CS2 Marketplace API Server",
-      environment: process.env.NODE_ENV || "development",
-      status: "running",
-    });
-  });
-}
-
-// Handle 404 for API routes
-app.use("/api/*", (req, res) => {
-  console.log("404 API route not found:", req.originalUrl);
-  res.status(404).json({ error: "API endpoint not found" });
-});
 
 // Steam Web API webhook endpoint
 app.post("/api/webhooks/steam-trade", async (req, res) => {
@@ -152,6 +122,46 @@ app.post("/api/webhooks/steam-trade", async (req, res) => {
   }
 });
 
+// Handle React routing in production
+if (process.env.NODE_ENV === "production") {
+  // Serve static files from the React app
+  app.use(express.static(path.join(__dirname, "../client/build")));
+
+  // Handle non-API routes by serving the React app
+  app.get("*", (req, res, next) => {
+    // Log the request path for debugging
+    console.log("Incoming request path:", req.path);
+
+    if (req.path.startsWith("/api/")) {
+      console.log("Forwarding to API routes:", req.path);
+      return next();
+    }
+    console.log("Serving React app for path:", req.path);
+    res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+  });
+} else {
+  // Development welcome route
+  app.get("/", (req, res) => {
+    res.json({
+      message: "CS2 Marketplace API Server",
+      environment: process.env.NODE_ENV || "development",
+      status: "running",
+    });
+  });
+}
+
+// Handle 404 for API routes - Move this AFTER all other routes
+app.use("/api/*", (req, res) => {
+  console.log(
+    "404 API route not found:",
+    req.originalUrl,
+    "Method:",
+    req.method
+  );
+  console.log("Headers:", req.headers);
+  res.status(404).json({ error: "API endpoint not found" });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error("Server error:", err);
@@ -173,10 +183,9 @@ const server = http.createServer(app);
 // Initialize Socket.io with proper CORS for deployment
 const io = new Server(server, {
   cors: {
-    origin:
-      process.env.NODE_ENV === "production"
-        ? ["https://csp2p-1.onrender.com"]
-        : ["http://localhost:3000"],
+    origin: process.env.NODE_ENV === "production"
+      ? [process.env.CLIENT_URL || "https://csp2p-1.onrender.com"]
+      : ["http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true,
   },

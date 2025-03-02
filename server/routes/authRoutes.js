@@ -29,14 +29,14 @@ router.get(
   (req, res) => {
     // Successful authentication
     const clientUrl = process.env.CLIENT_URL || "https://csp2p-1.onrender.com";
-    const returnTo = req.session.returnTo || clientUrl;
-    console.log("Redirecting after auth to:", returnTo);
+    // Always redirect to client URL after auth to ensure proper frontend loading
+    console.log("Redirecting after auth to:", clientUrl);
 
     // Clear the stored URL
     delete req.session.returnTo;
 
     // Redirect back to the client
-    res.redirect(returnTo);
+    res.redirect(clientUrl);
   }
 );
 

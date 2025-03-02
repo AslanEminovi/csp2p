@@ -6,7 +6,7 @@ services:
     staticPublishPath: ./build
     envVars:
       - key: REACT_APP_API_URL
-        value: https://cs2p2p-api.onrender.com
+        value: https://cs2p2p-api.onrender.com/api
     routes:
       - type: rewrite
         source: /*

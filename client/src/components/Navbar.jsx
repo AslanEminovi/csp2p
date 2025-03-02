@@ -394,7 +394,7 @@ function Navbar({ user, onLogout }) {
           </div>
         ) : (
           <a 
-            href={`${API_URL}/api/auth/steam`}
+            href={`${API_URL}/auth/steam`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

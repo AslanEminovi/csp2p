@@ -12,8 +12,12 @@ services:
       - key: SESSION_SECRET
         value: cs2marketplaceSecretKey789456123
       - key: CALLBACK_URL
-        value: https://cs2p2p-api.onrender.com/auth/steam/return
+        value: https://cs2p2p-api.onrender.com/api/auth/steam/return
       - key: API_URL
         value: https://cs2p2p-api.onrender.com
       - key: CLIENT_URL
-        value: https://csp2p.onrender.com
+        value: https://csp2p-1.onrender.com
+      - key: MONGO_URI
+        value: mongodb+srv://eminoviaslan:asqo-140@csgeorgia.2hjvj.mongodb.net/cs2marketplace?retryWrites=true&w=majority&appName=CSGEorgia
+      - key: STEAM_API_KEY
+        value: F754A63D38C9F63C247615D6F88D868C
