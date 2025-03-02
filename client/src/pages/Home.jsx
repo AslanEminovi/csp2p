@@ -349,7 +349,7 @@ function Home({ user }) {
               View Your Inventory
             </Link>
           ) : (
-            <a href="http://localhost:5001/auth/steam" className="cta-button">
+            <a href={`${API_URL}/api/auth/steam`} className="cta-button">
               Sign in with Steam
             </a>
           )}
