@@ -9,6 +9,7 @@ const path = require("path");
 const http = require("http");
 const { Server } = require("socket.io");
 const crypto = require("crypto");
+const MongoStore = require("connect-mongo");
 
 // Generate default secrets if not provided
 const SESSION_SECRET =
@@ -37,34 +38,48 @@ const app = express();
 // Enable CORS for your React client
 app.use(
   cors({
-    origin: ["https://csp2p-1.onrender.com", "http://localhost:3000"],
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["https://csp2p-1.onrender.com"]
+        : ["http://localhost:3000"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Accept"],
-    exposedHeaders: ["set-cookie"]
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Increased body size limit for larger payloads (e.g., when submitting multiple items)
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+// Body parser middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// Express session configuration (required by Passport)
-const sessionMiddleware = session({
+// Express session configuration
+const sessionConfig = {
   secret: SESSION_SECRET,
-  resave: true, // Force session save to ensure it's saved
-  saveUninitialized: true,
-  store: new session.MemoryStore(), // Use memory store to ensure sessions are working
+  resave: false,
+  saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI,
+    ttl: 24 * 60 * 60, // 1 day
+  }),
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    secure: false, // Disable secure flag to ensure cookies are set
-    sameSite: 'lax', // Use lax to ensure cookies are accepted
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "none",
     httpOnly: true,
-    path: '/',
+    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined,
   },
   name: "cs2marketplace.sid",
-});
+};
 
+// In production, trust the proxy to enable secure cookies
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
+// Create the session middleware
+const sessionMiddleware = session(sessionConfig);
+
+// Use session middleware in Express
 app.use(sessionMiddleware);
 
 // Initialize Passport and restore authentication state
@@ -185,15 +200,20 @@ const server = http.createServer(app);
 // Initialize Socket.io with proper CORS for deployment
 const io = new Server(server, {
   cors: {
-    origin: ["https://csp2p-1.onrender.com", "https://csp2p.onrender.com", "http://localhost:3000"],
+    origin: [
+      "https://csp2p-1.onrender.com",
+      "https://csp2p.onrender.com",
+      "http://localhost:3000",
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-// Use session middleware with Socket.io
+// Socket.IO configuration
 const wrap = (middleware) => (socket, next) =>
   middleware(socket.request, {}, next);
+
 io.use(wrap(sessionMiddleware));
 io.use(wrap(passport.initialize()));
 io.use(wrap(passport.session()));
@@ -238,13 +258,13 @@ const startServer = async () => {
   try {
     // Wait for database connection
     await dbPromise;
-    
+
     // FORCE PRODUCTION MODE ON RENDER
     if (process.env.PORT === "10000") {
       process.env.NODE_ENV = "production";
       console.log("FORCING PRODUCTION MODE ON RENDER");
     }
-    
+
     // Start the server
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
