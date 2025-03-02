@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { formatCurrency } from '../config/constants';
+import { formatCurrency, API_URL } from '../config/constants';
 import NotificationCenter from './NotificationCenter';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -394,7 +394,7 @@ function Navbar({ user, onLogout }) {
           </div>
         ) : (
           <a 
-            href="http://localhost:5001/auth/steam"
+            href={`${API_URL}/api/auth/steam`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

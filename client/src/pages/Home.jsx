@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import ItemCard3D from '../components/ItemCard3D';
 import './Home.css';
+import { API_URL } from '../config/constants';
 
 function Home({ user }) {
   const [featuredItems, setFeaturedItems] = useState([]);
@@ -92,7 +93,7 @@ function Home({ user }) {
                 Browse Marketplace
               </Link>
             ) : (
-              <a href="http://localhost:5001/auth/steam" className="cta-button pulse">
+              <a href={`${API_URL}/api/auth/steam`} className="cta-button pulse">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px' }}>
                   <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" stroke="white" strokeWidth="2"/>
                   <path d="M6 12L12 3L18 12L12 21L6 12Z" stroke="white" strokeWidth="2"/>
