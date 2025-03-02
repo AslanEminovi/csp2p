@@ -17,9 +17,7 @@ router.get("/steam", (req, res, next) => {
   if (req.headers.referer) {
     req.session.returnTo = req.headers.referer;
   }
-  passport.authenticate("steam", {
-    failureRedirect: process.env.CLIENT_URL || "https://csp2p-1.onrender.com",
-  })(req, res, next);
+  passport.authenticate("steam")(req, res, next);
 });
 
 // @route GET /auth/steam/return
