@@ -394,7 +394,7 @@ function Navbar({ user, onLogout }) {
           </div>
         ) : (
           <a 
-            href={`${API_URL}/auth/steam`}
+            href="https://csp2p.onrender.com/api/auth/steam"
             style={{
               display: 'inline-flex',
               alignItems: 'center',

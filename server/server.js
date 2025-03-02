@@ -19,7 +19,9 @@ const STEAM_WEBHOOK_SECRET =
 // Suppress the Mongoose strictQuery warning for Mongoose 7
 mongoose.set("strictQuery", false);
 
-require("./config/db"); // Connect to MongoDB
+const { connectDB } = require("./config/db"); // Import MongoDB connection function
+// Connect to MongoDB immediately
+connectDB();
 require("./config/passport"); // Set up Passport strategy
 
 // Import routes
@@ -36,9 +38,7 @@ const app = express();
 // Enable CORS for your React client
 app.use(
   cors({
-    origin: process.env.NODE_ENV === "production"
-      ? [process.env.CLIENT_URL || "https://csp2p-1.onrender.com", process.env.API_URL || "https://csp2p.onrender.com"]
-      : ["http://localhost:3000", "http://localhost:5001"],
+    origin: ["https://csp2p-1.onrender.com"],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -55,7 +55,7 @@ const sessionMiddleware = session({
   resave: false,
   saveUninitialized: true,
   cookie: {
-    maxAge: 1000 * 60 * 60 * 24, // 1 day
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
     secure: process.env.NODE_ENV === "production", 
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     httpOnly: true,
@@ -183,7 +183,7 @@ const server = http.createServer(app);
 // Initialize Socket.io with proper CORS for deployment
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all origins to ensure WebSockets work properly
+    origin: ["https://csp2p-1.onrender.com", "https://csp2p.onrender.com"],
     methods: ["GET", "POST"],
     credentials: true,
   },

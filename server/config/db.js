@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 // Default to MongoDB Atlas URI if available, with better error handling for missing URI
-const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb+srv://eminoviaslan:asqo-140@csgeorgia.2hjvj.mongodb.net/cs2marketplace?retryWrites=true&w=majority&appName=CSGEorgia";
 
 if (!MONGODB_URI) {
   console.warn("No MongoDB URI provided in environment variables!");

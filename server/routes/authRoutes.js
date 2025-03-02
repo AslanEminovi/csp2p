@@ -13,17 +13,12 @@ router.use((req, res, next) => {
 // @route GET /auth/steam
 router.get("/steam", (req, res, next) => {
   console.log("Steam auth request from:", req.headers.referer || "unknown");
-  // Store the origin in the session for the return route
-  if (req.headers.referer) {
-    req.session.returnTo = req.headers.referer;
-  }
+  
+  // Store the client URL for redirect after authentication
+  req.session.returnTo = "https://csp2p-1.onrender.com";
   
   // Debug info
-  console.log("Starting Steam auth with the following configuration:");
-  console.log("- API_URL:", process.env.API_URL);
-  console.log("- CLIENT_URL:", process.env.CLIENT_URL);
-  console.log("- CALLBACK_URL:", process.env.CALLBACK_URL);
-  console.log("- NODE_ENV:", process.env.NODE_ENV);
+  console.log("Starting Steam auth...");
   
   passport.authenticate("steam", { session: true })(req, res, next);
 });
@@ -32,20 +27,15 @@ router.get("/steam", (req, res, next) => {
 router.get(
   "/steam/return",
   passport.authenticate("steam", {
-    failureRedirect: process.env.CLIENT_URL || "https://csp2p-1.onrender.com",
+    failureRedirect: "https://csp2p-1.onrender.com",
     session: true
   }),
   (req, res) => {
-    // Successful authentication
-    const clientUrl = process.env.CLIENT_URL || "https://csp2p-1.onrender.com";
-    // Always redirect to client URL after auth to ensure proper frontend loading
-    console.log("Redirecting after auth to:", clientUrl);
-
-    // Clear the stored URL
-    delete req.session.returnTo;
-
-    // Redirect back to the client
-    res.redirect(clientUrl);
+    console.log("Steam authentication successful");
+    console.log("User:", req.user ? req.user.displayName : "Unknown");
+    
+    // Redirect to client after successful authentication
+    res.redirect("https://csp2p-1.onrender.com");
   }
 );
 
