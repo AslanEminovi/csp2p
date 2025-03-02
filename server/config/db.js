@@ -1,9 +1,15 @@
 const mongoose = require("mongoose");
 
-// Explicit database connection string
-const MONGODB_URI = "mongodb+srv://eminoviaslan:asqo-140@csgeorgia.2hjvj.mongodb.net/cs2marketplace?retryWrites=true&w=majority&appName=CSGEorgia";
+// Default to MongoDB Atlas URI if available, with better error handling for missing URI
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 
-console.log("Using MongoDB URI:", MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, "//$1:****@"));
+if (!MONGODB_URI) {
+  console.warn("No MongoDB URI provided in environment variables!");
+  console.warn(
+    "Database features will be available after user authentication."
+  );
+  console.warn("Please ensure MONGODB_URI is set for persistent data storage.");
+}
 
 // MongoDB connection options
 const options = {
@@ -11,18 +17,26 @@ const options = {
   useUnifiedTopology: true,
   retryWrites: true,
   w: "majority",
-  serverSelectionTimeoutMS: 10000, // Increase timeout for cloud environments
+  serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
 };
 
 // Function to connect to MongoDB
 const connectDB = async () => {
   try {
+    if (!MONGODB_URI) {
+      console.warn("Waiting for database connection details...");
+      return null;
+    }
+
+    console.log(
+      "Using MongoDB URI:",
+      MONGODB_URI.replace(/\/\/([^:]+):([^@]+)@/, "//\\1:****@")
+    );
     console.log("Attempting to connect to MongoDB...");
-    
-    await mongoose.connect(MONGODB_URI, options);
-    
-    console.log("MongoDB connected successfully!");
-    
+
+    const connection = await mongoose.connect(MONGODB_URI, options);
+    console.log("MongoDB Connected Successfully");
+
     // Test the connection by checking database stats
     const stats = await mongoose.connection.db.stats();
     console.log("Database stats:", {
@@ -30,37 +44,46 @@ const connectDB = async () => {
       objects: stats.objects,
       avgObjSize: stats.avgObjSize,
       dataSize: stats.dataSize,
-      storageSize: stats.storageSize
+      storageSize: stats.storageSize,
     });
-    
+
     // Check if User collection exists and count documents
-    const collections = await mongoose.connection.db.listCollections().toArray();
-    const collectionNames = collections.map(c => c.name);
+    const collections = await mongoose.connection.db
+      .listCollections()
+      .toArray();
+    const collectionNames = collections.map((c) => c.name);
     console.log("Available collections:", collectionNames);
-    
-    if (collectionNames.includes('users')) {
-      const userCount = await mongoose.connection.db.collection('users').countDocuments();
+
+    if (collectionNames.includes("users")) {
+      const userCount = await mongoose.connection.db
+        .collection("users")
+        .countDocuments();
       console.log("User collection exists with", userCount, "documents");
     } else {
       console.warn("User collection does not exist yet!");
     }
-    
-    return true;
+
+    return connection;
   } catch (err) {
     console.error("MongoDB connection error:", err);
-    console.error("Connection string format valid:", MONGODB_URI.startsWith("mongodb+srv://"));
-    console.error("MongoDB host reachable:", !err.message.includes("getaddrinfo"));
-    console.error("Authentication correct:", !err.message.includes("Authentication failed"));
-    
-    return false;
+    console.error(
+      "Connection string format valid:",
+      MONGODB_URI.startsWith("mongodb+srv://")
+    );
+    console.error(
+      "MongoDB host reachable:",
+      !err.message.includes("getaddrinfo")
+    );
+    console.error(
+      "Authentication correct:",
+      !err.message.includes("Authentication failed")
+    );
+    console.warn(
+      "Database features will be limited until connection is established."
+    );
+    return null;
   }
 };
 
-// Initial connection attempt
-const dbPromise = connectDB();
-
-// Export the connection function and promise
-module.exports = { 
-  connectDB,
-  dbPromise
-};
+// Export both the connection function and the mongoose instance
+module.exports = { connectDB, mongoose };

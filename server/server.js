@@ -59,7 +59,10 @@ const sessionConfig = {
   saveUninitialized: false,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI || process.env.MONGO_URI,
+    collectionName: "sessions",
     ttl: 24 * 60 * 60, // 1 day
+    autoRemove: "native",
+    touchAfter: 24 * 3600, // time period in seconds
   }),
   cookie: {
     maxAge: 24 * 60 * 60 * 1000, // 1 day
@@ -248,22 +251,12 @@ io.on("connection", (socket) => {
 
 // Initialize socket service
 const socketService = require("./services/socketService");
-socketService.init(io);
 
-// Export io instance for use in other files
-app.set("io", io);
-
-// Start the server after ensuring database connection
+// Start the server after MongoDB connection is established
 const startServer = async () => {
   try {
-    // Wait for database connection
-    await dbPromise;
-
-    // FORCE PRODUCTION MODE ON RENDER
-    if (process.env.PORT === "10000") {
-      process.env.NODE_ENV = "production";
-      console.log("FORCING PRODUCTION MODE ON RENDER");
-    }
+    // Connect to MongoDB first
+    await connectDB();
 
     // Start the server
     server.listen(PORT, () => {
