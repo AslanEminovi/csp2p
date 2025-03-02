@@ -52,13 +52,15 @@ app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 // Express session configuration (required by Passport)
 const sessionMiddleware = session({
   secret: SESSION_SECRET,
-  resave: false,
+  resave: true, // Force session save to ensure it's saved
   saveUninitialized: true,
+  store: new session.MemoryStore(), // Use memory store to ensure sessions are working
   cookie: {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    secure: process.env.NODE_ENV === "production", // Only use secure cookies in production
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    secure: false, // Disable secure flag to ensure cookies are set
+    sameSite: 'lax', // Use lax to ensure cookies are accepted
     httpOnly: true,
+    path: '/',
   },
   name: "cs2marketplace.sid",
 });
@@ -236,6 +238,12 @@ const startServer = async () => {
   try {
     // Wait for database connection
     await dbPromise;
+    
+    // FORCE PRODUCTION MODE ON RENDER
+    if (process.env.PORT === "10000") {
+      process.env.NODE_ENV = "production";
+      console.log("FORCING PRODUCTION MODE ON RENDER");
+    }
     
     // Start the server
     server.listen(PORT, () => {

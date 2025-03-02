@@ -2,10 +2,8 @@
  * Application constants
  */
 
-// API URL that adapts to the environment
-export const API_URL = process.env.NODE_ENV === 'production'
-  ? "https://csp2p.onrender.com/api"
-  : "http://localhost:5001/api";
+// Hard-coded API URL for now to make sure it works
+export const API_URL = "https://csp2p.onrender.com/api";
 
 // Platform fee (as a percentage)
 export const PLATFORM_FEE = 2.5;

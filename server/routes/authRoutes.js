@@ -14,33 +14,47 @@ router.use((req, res, next) => {
 // @route GET /auth/steam
 router.get("/steam", (req, res, next) => {
   console.log("Steam auth request from:", req.headers.referer || "unknown");
-  // Store the origin in the session for the return route
-  if (req.headers.referer) {
-    req.session.returnTo = req.headers.referer;
-  }
-  passport.authenticate("steam")(req, res, next);
+  
+  // Store the Render frontend URL so we can redirect back to it
+  req.session.returnTo = "https://csp2p-1.onrender.com";
+  console.log("Stored return URL in session:", req.session.returnTo);
+  
+  // Force creation of session before authentication
+  req.session.save(() => {
+    passport.authenticate("steam")(req, res, next);
+  });
 });
 
 // @route GET /auth/steam/return
 router.get(
   "/steam/return",
   passport.authenticate("steam", {
-    failureRedirect: process.env.CLIENT_URL || "https://csp2p-1.onrender.com",
+    failureRedirect: "https://csp2p-1.onrender.com",
+    session: true
   }),
   (req, res) => {
-    // Successful authentication
-    const clientUrl = process.env.NODE_ENV === "production" 
-      ? (process.env.CLIENT_URL || "https://csp2p-1.onrender.com")
-      : "http://localhost:3000";
+    try {
+      // Log user info to verify authentication worked
+      console.log("Authenticated user:", req.user.steamId, req.user.displayName);
+      console.log("Session ID after auth:", req.sessionID);
+  
+      // Make sure the user data is properly stored in the session
+      req.session.userId = req.user._id;
+      req.session.userAuthenticated = true;
       
-    console.log("Environment:", process.env.NODE_ENV || "development");
-    console.log("Client URL:", clientUrl);
-
-    // Clear the stored URL
-    delete req.session.returnTo;
-
-    // Redirect back to the client
-    res.redirect(clientUrl);
+      // Force session save before redirecting
+      req.session.save((err) => {
+        if (err) {
+          console.error("Failed to save session:", err);
+        }
+        
+        // Always redirect to the Render frontend
+        res.redirect("https://csp2p-1.onrender.com");
+      });
+    } catch (err) {
+      console.error("Error in auth return handler:", err);
+      res.redirect("https://csp2p-1.onrender.com");
+    }
   }
 );
 
@@ -50,24 +64,59 @@ router.get("/user", async (req, res) => {
   console.log("Session ID:", req.sessionID);
   console.log("User in session:", req.user ? `Yes - ${req.user.steamId}` : "No");
   
+  // First, check if we have a session with userId but no req.user
+  if (req.session && req.session.userId && !req.user) {
+    console.log("Found userId in session but missing req.user, attempting to restore user");
+    try {
+      const user = await User.findById(req.session.userId);
+      if (user) {
+        console.log("Successfully restored user from session userId");
+        req.user = user;
+      }
+    } catch (e) {
+      console.error("Failed to restore user from session:", e);
+    }
+  }
+  
+  // Now proceed with the normal flow
   if (req.user) {
     try {
       console.log(`Found user in session: ${req.user.displayName} (${req.user.steamId})`);
       
-      // Print debug info about this user
-      console.log("User ID:", req.user._id);
-      console.log("Display Name:", req.user.displayName);
-      console.log("Avatar URL:", req.user.avatar);
-      console.log("Last Update:", req.user.lastProfileUpdate);
-      
-      // Try to refresh the user from the database to ensure we have the latest data
+      // Always try to get a fresh copy from database
       try {
         const freshUser = await User.findById(req.user._id);
         if (freshUser) {
           console.log("Successfully retrieved fresh user data from database");
           req.user = freshUser;
         } else {
-          console.error("User exists in session but not in database!");
+          // If the user doesn't exist in the database anymore, we need to check if this is a fresh auth
+          console.log("User not found in database, checking Steam API...");
+          
+          // Try to get user from Steam API using steamId
+          if (req.user.steamId) {
+            try {
+              const steamData = await steamApiService.getProfile(req.user.steamId);
+              if (steamData && steamData.response && steamData.response.players && steamData.response.players.length > 0) {
+                const steamUser = steamData.response.players[0];
+                
+                // Create a new user record
+                const newUser = new User({
+                  steamId: steamUser.steamid,
+                  displayName: steamUser.personaname,
+                  avatar: steamUser.avatarfull,
+                  walletBalance: 0,
+                  lastProfileUpdate: new Date()
+                });
+                
+                await newUser.save();
+                console.log("Created new user from Steam API data:", newUser._id);
+                req.user = newUser;
+              }
+            } catch (steamError) {
+              console.error("Error fetching user from Steam API:", steamError);
+            }
+          }
         }
       } catch (dbError) {
         console.error("Error fetching user from database:", dbError);
@@ -81,11 +130,11 @@ router.get("/user", async (req, res) => {
           steamId: req.user.steamId,
           displayName: req.user.displayName,
           avatar: req.user.avatar,
-          tradeUrl: req.user.tradeUrl,
-          tradeUrlExpiry: req.user.tradeUrlExpiry,
+          tradeUrl: req.user.tradeUrl || null,
+          tradeUrlExpiry: req.user.tradeUrlExpiry || null,
           walletBalance: req.user.walletBalance || 0,
           walletBalanceGEL: req.user.walletBalanceGEL || 0,
-          lastProfileUpdate: req.user.lastProfileUpdate,
+          lastProfileUpdate: req.user.lastProfileUpdate || new Date(),
         },
       });
     } catch (error) {

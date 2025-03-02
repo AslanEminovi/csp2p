@@ -50,15 +50,56 @@ function App() {
   const checkAuthStatus = async () => {
     try {
       setLoading(true);
+      
+      // Try to force proper CORS handling
       const res = await axios.get(`${API_URL}/auth/user`, { 
-        withCredentials: true 
+        withCredentials: true,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
       });
       
-      if (res.data.authenticated) {
+      console.log('Auth response:', res.data);
+      
+      if (res.data.authenticated && res.data.user) {
+        console.log('Setting user data:', res.data.user);
         setUser(res.data.user);
+      } else {
+        console.log('Not authenticated or no user data');
+        
+        // As a fallback, try to get user data from localStorage
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            console.log('Using stored user data:', userData);
+            setUser(userData);
+          } catch (e) {
+            console.error('Failed to parse stored user data:', e);
+          }
+        }
       }
     } catch (err) {
       console.error('Auth check error:', err);
+      
+      // Try direct API URL as fallback
+      try {
+        const res = await axios.get('https://csp2p.onrender.com/api/auth/user', { 
+          withCredentials: true 
+        });
+        
+        if (res.data.authenticated) {
+          console.log('Auth successful through direct URL');
+          setUser(res.data.user);
+          
+          // Store user in localStorage as fallback
+          localStorage.setItem('user', JSON.stringify(res.data.user));
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback auth check also failed:', fallbackErr);
+      }
     } finally {
       setLoading(false);
     }
