@@ -50,11 +50,6 @@ app.use(
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
-// Serve static files from the React app in production
-if (process.env.NODE_ENV === "production") {
-  app.use(express.static(path.join(__dirname, "../client/build")));
-}
-
 // Express session configuration (required by Passport)
 const sessionMiddleware = session({
   secret: SESSION_SECRET,
@@ -76,7 +71,7 @@ app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-// API Routes
+// API Routes - Move these BEFORE the React routing handler
 app.use("/api/auth", authRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
@@ -85,9 +80,13 @@ app.use("/api/trades", tradeRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/user", userRoutes);
 
-// Handle React routing in production, return all non-api requests to React app
+// Handle React routing in production
 if (process.env.NODE_ENV === "production") {
-  app.get("*", function (req, res, next) {
+  // Serve static files from the React app
+  app.use(express.static(path.join(__dirname, "../client/build")));
+  
+  // Handle non-API routes by serving the React app
+  app.get("*", (req, res, next) => {
     if (req.path.startsWith("/api/")) {
       return next();
     }
