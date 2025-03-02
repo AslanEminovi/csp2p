@@ -29,33 +29,47 @@ const app = express();
 // Enable CORS for your React client
 app.use(
   cors({
-    origin: process.env.CLIENT_URL 
-      ? [process.env.CLIENT_URL] 
-      : ["http://localhost:3000", "https://cs2-marketplace.onrender.com"],
+    origin: process.env.CLIENT_URL
+      ? [
+          process.env.CLIENT_URL,
+          "https://cs2p2p.onrender.com",
+          "https://cs2p2p-api.onrender.com",
+        ]
+      : [
+          "http://localhost:3000",
+          "https://cs2p2p.onrender.com",
+          "https://cs2p2p-api.onrender.com",
+        ],
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
 // Increased body size limit for larger payloads (e.g., when submitting multiple items)
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
 
 // Check for session secret
 if (!process.env.SESSION_SECRET) {
-  throw new Error('SESSION_SECRET environment variable is required but not provided');
+  throw new Error(
+    "SESSION_SECRET environment variable is required but not provided"
+  );
 }
 
 // Express session configuration (required by Passport)
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET,
-  resave: false, // Only save session if modified
-  saveUninitialized: false, // Don't create session until something stored
+  resave: false,
+  saveUninitialized: false,
   cookie: {
     maxAge: 1000 * 60 * 60 * 24, // 1 day
-    secure: process.env.NODE_ENV === 'production', // Set true in production
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // Needed for cross-site cookie in production
-    httpOnly: true // Prevents client-side JS from reading the cookie
-  }
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    httpOnly: true,
+    domain: process.env.NODE_ENV === "production" ? ".onrender.com" : undefined,
+  },
+  name: "cs2marketplace.sid",
 });
 
 app.use(sessionMiddleware);
@@ -77,37 +91,39 @@ app.use("/user", userRoutes);
 app.post("/api/webhooks/steam-trade", async (req, res) => {
   try {
     const webhookData = req.body;
-    const signature = req.headers['x-steam-signature'];
-    
+    const signature = req.headers["x-steam-signature"];
+
     if (!signature) {
       console.warn("Webhook received without signature header");
       return res.status(401).json({ error: "Missing webhook signature" });
     }
-    
+
     // Validate the webhook signature
-    const crypto = require('crypto');
+    const crypto = require("crypto");
     const webhookSecret = process.env.STEAM_WEBHOOK_SECRET;
-    
+
     if (!webhookSecret) {
       console.error("STEAM_WEBHOOK_SECRET not configured");
-      return res.status(500).json({ error: "Webhook validation not configured" });
+      return res
+        .status(500)
+        .json({ error: "Webhook validation not configured" });
     }
-    
+
     // Create HMAC signature for validation
-    const hmac = crypto.createHmac('sha256', webhookSecret);
+    const hmac = crypto.createHmac("sha256", webhookSecret);
     const computedSignature = hmac
       .update(JSON.stringify(webhookData))
-      .digest('hex');
-    
+      .digest("hex");
+
     if (computedSignature !== signature) {
       console.warn("Invalid webhook signature received");
       return res.status(401).json({ error: "Invalid webhook signature" });
     }
-    
+
     // Process the webhook data
     const steamApiService = require("./services/steamApiService");
     const result = await steamApiService.processTradeWebhook(webhookData);
-    
+
     return res.status(200).json({ success: true });
   } catch (error) {
     console.error("Webhook processing error:", error);
@@ -120,12 +136,15 @@ app.use((err, req, res, next) => {
   console.error("Server error:", err);
   res.status(500).json({
     error: "Server error",
-    message: process.env.NODE_ENV === 'production' ? 'An unexpected error occurred' : err.message
+    message:
+      process.env.NODE_ENV === "production"
+        ? "An unexpected error occurred"
+        : err.message,
   });
 });
 
-// Pick up PORT from .env or default to 5001
-const PORT = process.env.PORT || 5001;
+// Pick up PORT from environment variable (Render.com will set this automatically)
+const PORT = process.env.PORT || 10000;
 
 // Create HTTP server and integrate with Express
 const server = http.createServer(app);
@@ -133,16 +152,18 @@ const server = http.createServer(app);
 // Initialize Socket.io with proper CORS for deployment
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL 
-      ? [process.env.CLIENT_URL] 
-      : ["http://localhost:3000", "https://cs2-marketplace.onrender.com"],
+    origin:
+      process.env.NODE_ENV === "production"
+        ? ["https://cs2p2p.onrender.com"]
+        : ["http://localhost:3000"],
     methods: ["GET", "POST"],
-    credentials: true
-  }
+    credentials: true,
+  },
 });
 
 // Use session middleware with Socket.io
-const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
+const wrap = (middleware) => (socket, next) =>
+  middleware(socket.request, {}, next);
 io.use(wrap(sessionMiddleware));
 io.use(wrap(passport.initialize()));
 io.use(wrap(passport.session()));
@@ -150,47 +171,49 @@ io.use(wrap(passport.session()));
 // WebSocket connection handling
 io.on("connection", (socket) => {
   console.log(`New client connected: ${socket.id}`);
-  
+
   // Authenticate the socket connection using session data
   if (socket.request.user) {
     const userId = socket.request.user._id;
-    console.log(`Authenticated user ${userId} connected to socket ${socket.id}`);
-    
+    console.log(
+      `Authenticated user ${userId} connected to socket ${socket.id}`
+    );
+
     // Join user to their own room for targeted messages
     socket.join(`user:${userId}`);
-    
+
     // Send welcome message to client
-    socket.emit("connect_success", { message: "Successfully connected to WebSocket server" });
+    socket.emit("connect_success", {
+      message: "Successfully connected to WebSocket server",
+    });
   } else {
     console.log(`Unauthenticated connection: ${socket.id}`);
     socket.emit("auth_error", { message: "Authentication required" });
   }
-  
+
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
   });
 });
 
 // Initialize socket service
-const socketService = require('./services/socketService');
+const socketService = require("./services/socketService");
 socketService.init(io);
 
 // Export io instance for use in other files
-app.set('io', io);
+app.set("io", io);
 
-// Start the server (only when not on Vercel)
-if (process.env.VERCEL !== '1') {
-  server.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`WebSocket server initialized`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-  });
-}
+// Start the server
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`WebSocket server initialized`);
+  console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+});
 
-// Export the Express API for Vercel
+// Export the Express API
 module.exports = app;
 
-// Handle server error events (e.g., port in use)
+// Handle server error events
 server.on("error", (err) => {
   if (err.code === "EADDRINUSE") {
     console.error(
@@ -203,12 +226,12 @@ server.on("error", (err) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully');
+process.on("SIGTERM", () => {
+  console.log("SIGTERM received, shutting down gracefully");
   server.close(() => {
-    console.log('Server closed');
+    console.log("Server closed");
     mongoose.connection.close(false, () => {
-      console.log('MongoDB connection closed');
+      console.log("MongoDB connection closed");
       process.exit(0);
     });
   });

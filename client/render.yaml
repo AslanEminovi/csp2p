@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: csp2p-1
+    env: static
+    buildCommand: cd client && npm install --legacy-peer-deps && npm run build
+    staticPublishPath: ./build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://cs2p2p-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

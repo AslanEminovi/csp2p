@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: cs2p2p-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: SESSION_SECRET
+        value: cs2marketplaceSecretKey789456123
+      - key: CALLBACK_URL
+        value: https://cs2p2p-api.onrender.com/auth/steam/return
+      - key: API_URL
+        value: https://cs2p2p-api.onrender.com
+      - key: CLIENT_URL
+        value: https://csp2p.onrender.com
